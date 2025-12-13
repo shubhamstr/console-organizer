@@ -1,0 +1,42 @@
+body {
+  font-family: monospace;
+  padding: 10px;
+  margin: 0;
+  height: 100vh;
+  box-sizing: border-box;
+}
+
+#logs {
+  height: calc(100vh - 80px);
+  overflow-y: auto; /* ✅ single scroll */
+  border: 1px solid #ccc;
+  padding: 6px;
+  box-sizing: border-box;
+}
+
+.log {
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px dashed #ddd;
+}
+
+/* Primitive values */
+.log-text {
+  white-space: pre-wrap; /* ✅ wrap text */
+  word-break: break-word;
+}
+
+/* Objects */
+.log-object {
+  white-space: pre-wrap; /* ✅ wrap JSON */
+  word-break: break-word;
+  color: #0366d6;
+  cursor: pointer;
+}
+
+.highlight {
+  background-color: #ffeb3b;
+  color: #000;
+  padding: 0 2px;
+  border-radius: 2px;
+}
