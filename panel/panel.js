@@ -2,11 +2,20 @@ const logsEl = document.getElementById("logs")
 const filterInput = document.getElementById("filterInput")
 const clearBtn = document.getElementById("clear")
 
+const showLogEl = document.getElementById("showLog")
+const showWarnEl = document.getElementById("showWarn")
+const showErrorEl = document.getElementById("showError")
+const clearFilterBtn = document.getElementById("clearFilter")
+
 let logs = []
 
 // Persist UI state across renders
 const expandedObjects = new Map()
 // key: logId + argIndex → boolean
+
+let lastCount = 0
+
+const search = filterInput.value.trim()
 
 // Listen to console logs from the inspected page
 chrome.devtools.network.onNavigated.addListener(() => {
@@ -24,25 +33,38 @@ chrome.devtools.inspectedWindow.eval(`
     if (window.__DEVTOOLS_LOGGER_INSTALLED__) return;
     window.__DEVTOOLS_LOGGER_INSTALLED__ = true;
 
-    const originalLog = console.log;
-
     window.__DEVTOOLS_CONSOLE_LOGS__ = [];
 
-    console.log = function (...args) {
+    function push(type, args) {
       window.__DEVTOOLS_CONSOLE_LOGS__.push({
-        id: crypto.randomUUID(),   // ✅ stable id
-        type: "log",
+        id: (crypto && crypto.randomUUID && crypto.randomUUID()) ||
+            Date.now().toString() + Math.random().toString(36),
+        type,
         args,
         time: Date.now()
       });
+    }
 
-      originalLog.apply(console, args);
+    const origLog = console.log;
+    const origWarn = console.warn;
+    const origError = console.error;
+
+    console.log = function (...args) {
+      push("log", args);
+      origLog.apply(console, args);
     };
 
+    console.warn = function (...args) {
+      push("warn", args);
+      origWarn.apply(console, args);
+    };
+
+    console.error = function (...args) {
+      push("error", args);
+      origError.apply(console, args);
+    };
   })();
 `)
-
-let lastCount = 0
 
 function fetchLogs() {
   chrome.devtools.inspectedWindow.eval(
@@ -57,23 +79,24 @@ function fetchLogs() {
   )
 }
 
-const search = filterInput.value.trim()
-
 function render() {
   const query = filterInput.value.trim()
   logsEl.innerHTML = ""
 
   logs.forEach((log) => {
-    // 🚫 Skip non-matching logs
+    // 🚫 log-level filter
+    if (!isLogTypeVisible(log.type)) return
+
+    // 🚫 search filter (visible only matches)
     if (!logMatchesSearch(log, query)) return
 
     const row = document.createElement("div")
-    row.className = "log"
+    row.className = `log ${log.type}`
 
     log.args.forEach((arg, index) => {
       const key = `${log.id}:${index}`
 
-      // Primitive values
+      // Primitive
       if (
         arg === null ||
         typeof arg === "string" ||
@@ -82,30 +105,24 @@ function render() {
       ) {
         const div = document.createElement("div")
         div.className = "log-text"
-
-        const text = String(arg)
-        div.appendChild(highlightText(text, query))
-
+        div.appendChild(highlightText(String(arg), query))
         row.appendChild(div)
         return
       }
 
-      // Object / Array
+      // Object
       const pre = document.createElement("pre")
       pre.className = "log-object"
+      pre.appendChild(highlightText(JSON.stringify(arg, null, 2), query))
 
-      const json = JSON.stringify(arg, null, 2)
-      pre.appendChild(highlightText(json, query))
-
-      const isExpanded = expandedObjects.get(key) === true
-      pre.style.maxHeight = isExpanded ? "none" : "80px"
+      const expanded = expandedObjects.get(key) === true
+      pre.style.maxHeight = expanded ? "none" : "80px"
       pre.style.overflow = "hidden"
       pre.style.cursor = "pointer"
 
       pre.onclick = () => {
-        const next = !expandedObjects.get(key)
-        expandedObjects.set(key, next)
-        pre.style.maxHeight = next ? "none" : "80px"
+        expandedObjects.set(key, !expanded)
+        pre.style.maxHeight = expanded ? "80px" : "none"
       }
 
       row.appendChild(pre)
@@ -115,11 +132,23 @@ function render() {
   })
 }
 
+;[showLogEl, showWarnEl, showErrorEl].forEach((el) => {
+  if (!el) return
+  el.addEventListener("change", render)
+})
+
 filterInput.addEventListener("input", render)
 
 clearBtn.onclick = () => {
+  chrome.devtools.inspectedWindow.eval("window.__DEVTOOLS_CONSOLE_LOGS__ = []")
   logs = []
+  lastCount = 0
   logsEl.innerHTML = ""
+}
+
+clearFilterBtn.onclick = () => {
+  filterInput.value = ""
+  render()
 }
 
 function escapeRegExp(str) {
@@ -182,6 +211,13 @@ function logMatchesSearch(log, query) {
       return false
     }
   })
+}
+
+function isLogTypeVisible(type) {
+  if (type === "log") return showLogEl?.checked ?? true
+  if (type === "warn") return showWarnEl?.checked ?? true
+  if (type === "error") return showErrorEl?.checked ?? true
+  return true
 }
 
 // Refresh logs

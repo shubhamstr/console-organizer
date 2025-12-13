@@ -40,3 +40,19 @@ body {
   padding: 0 2px;
   border-radius: 2px;
 }
+
+.log.log {
+  color: #000;
+}
+.log.warn {
+  color: #b58900;
+}
+.log.error {
+  color: #dc2626;
+}
+
+.log {
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px dashed #ddd;
+}

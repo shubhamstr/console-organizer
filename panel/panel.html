@@ -8,9 +8,18 @@
   <body>
     <h2>Console Organizer</h2>
 
-    <input id="filterInput" placeholder="Filter logs (regex / keyword)" />
+    <div style="display: flex; gap: 6px; margin-bottom: 8px">
+      <input id="filterInput" placeholder="Search logs…" />
 
-    <button id="clear">Clear</button>
+      <button id="clearFilter">Clear</button>
+      <button id="clear">Clear All Logs</button>
+    </div>
+
+    <div style="display: flex; gap: 10px; margin-bottom: 8px">
+      <label><input type="checkbox" id="showLog" checked /> Log</label>
+      <label><input type="checkbox" id="showWarn" checked /> Warn</label>
+      <label><input type="checkbox" id="showError" checked /> Error</label>
+    </div>
 
     <div id="logs"></div>
 
