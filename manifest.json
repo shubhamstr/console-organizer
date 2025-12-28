@@ -3,5 +3,8 @@
   "name": "Console Organizer",
   "version": "1.0.0",
   "description": "Enhanced console with filters, search highlight, and structured logs",
-  "devtools_page": "devtools.html"
+  "devtools_page": "devtools.html",
+  "icons": {
+    "128": "icons/icon128.png"
+  }
 }
